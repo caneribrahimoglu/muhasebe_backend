@@ -1,32 +1,10 @@
 from fastapi import FastAPI
 from pydantic import BaseModel
-
+from routers import customer
+from database import engine, Base
+import models
 app = FastAPI()
 
-class Customer(BaseModel):
-    id: int
-    name: str
-    surname: str
-    email: str
+Base.metadata.create_all(bind=engine)
 
-customers = []
-
-@app.get("/")
-def root():
-    return {"message": "Merhaba Muhasebe!"}
-
-
-
-@app.post("/customer/")
-def customer_add(customer: Customer):
-    customers.append(customer)
-    return {"message":"Müşteri eklendi", "customer": customer}
-
-@app.get("/customer/")
-def customer_list():
-    return  customers
-
-
-
-
-
+app.include_router(customer.router)
