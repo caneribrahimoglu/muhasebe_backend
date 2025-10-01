@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 class CustomerBase(BaseModel):
     name: str
@@ -7,8 +7,13 @@ class CustomerBase(BaseModel):
 class CustomerCreate(CustomerBase):
     pass
 
+class CustomerUpdate(BaseModel):
+    # Kısmi güncelleme için alanlar opsiyonel
+    name: str | None = None
+    email: EmailStr | None = None
+
+
 class Customer(CustomerBase):
     id : int
-
-    class Config:
-        from_attributes = True
+    # SQLAlchemy objesini Pydantic modele dönüştürmek için (Pydantic v2)
+    model_config = ConfigDict(from_attributes=True)
