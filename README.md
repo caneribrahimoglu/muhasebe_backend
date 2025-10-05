@@ -29,7 +29,7 @@ muhasebe_backend/
 ├── app/
 │   ├── crud/
 │   │   ├── base.py              # Generic CRUD soyutlaması
-│   │   └── customers.py         # Customer’a özel CRUD işlemleri
+│   │   └── _old_customers.py         # Customer’a özel CRUD işlemleri
 │   │
 │   ├── models/
 │   │   └── customer.py          # SQLAlchemy model (Customer)
@@ -38,7 +38,7 @@ muhasebe_backend/
 │   │   └── customer.py          # Pydantic şemaları (CustomerCreate, Update, vb.)
 │   │
 │   ├── routers/
-│   │   └── customers.py         # Customer endpoint’leri (GET, POST, PUT, DELETE)
+│   │   └── _old_customers.py         # Customer endpoint’leri (GET, POST, PUT, DELETE)
 │   │
 │   ├── database.py              # DB engine, session ve Base tanımı
 │   └── main.py                  # Uygulama girişi (FastAPI instance)

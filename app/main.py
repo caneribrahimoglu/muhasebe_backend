@@ -1,10 +1,22 @@
 from fastapi import FastAPI
-from app.routers import customers
-from app.database import engine
-from app.models import customer as models
+from app.routers import customer
+from app.database import Base, engine
 
-app = FastAPI(title="Muhasebe Backend")
+# Veritabanı tablolarını oluştur
+Base.metadata.create_all(bind=engine)
 
-models.Base.metadata.create_all(bind=engine)
+# FastAPI uygulaması
+app = FastAPI(
+    title="Muhasebe Backend",
+    version="1.0.0",
+    description="Caner İbrahimoglu tarafından geliştirilen yapay zekâ destekli muhasebe backend API'si."
+)
 
-app.include_router(customers.router)
+# Router'ları ekle
+app.include_router(customer.router)
+
+
+# Basit test endpoint’i
+@app.get("/")
+def root():
+    return {"message": "Muhasebe Backend API aktif 🚀"}
