@@ -1,186 +1,170 @@
-# 💼 Muhasebe Backend
+# 🧾 Muhasebe Backend (FastAPI ERP Çekirdeği)
 
-**Muhasebe Backend**, FastAPI, SQLAlchemy ve Pydantic kullanılarak geliştirilen, modüler, ölçeklenebilir ve ilişkisel bir **muhasebe yönetim sistemi API** projesidir.  
-Proje; müşteri, adres ve banka bilgilerini ilişkisel olarak yöneten bir altyapı üzerine kurulmuştur.
+Bu proje; **FastAPI**, **SQLAlchemy** ve **Pydantic 2.0** altyapısı ile geliştirilmiş  
+bir **mini muhasebe ve stok yönetim sistemi**dir.  
+Fatura, stok, cari hesap ve tahsilat modüllerini entegre biçimde yönetir.
 
 ---
 
 ## 🚀 Özellikler
 
-- ⚙️ **Generic CRUD altyapısı**
-  - `app/crud/base.py` üzerinden her model için ortak CRUD işlemleri.
-- 🧩 **İlişkisel müşteri yönetimi**
-  - Müşteriler (`Customer`) ile bağlı adres (`CustomerAddress`) ve banka (`CustomerBank`) kayıtları tek endpoint üzerinden yönetilir.
-- 🔁 **Kısmi güncelleme desteği**
-  - `PUT /customers/{id}` çağrısı:
-    - `id` varsa → günceller  
-    - `id` yoksa → yeni kayıt oluşturur  
-    - JSON’da olmayan `id` → ilgili kayıtları siler
-- 🧱 **Soyutlanmış router sistemi**
-  - `app/routers/base.py` üzerinden tüm CRUD endpoint’leri dinamik olarak üretilir.
-- 🧰 **Pydantic + SQLAlchemy uyumu**
-  - `model_config = {"from_attributes": True}` ile hızlı dönüşüm.
-- 🗃️ **SQLite veritabanı (PostgreSQL uyumlu yapı)**
+### 👥 Cari Yönetimi (`/customers`)
+- Müşteri ve tedarikçi kayıtlarını **tek tablo** üzerinden yönetir.
+- `CustomerType`: `ALICI` / `SATICI`
+- `InstitutionType`: `KURUM` / `SAHIS`
+- Finansal bilgiler: döviz, iskonto, kredi limiti, vade, cari kodu vb.
+
+### 📦 Ürün Yönetimi (`/products`)
+- Ürün, kategori, stok ve fiyat bilgileri.
+- `ProductCompatibility` ile model uyumluluk listeleri.
+- Ürün arama: `/products/search/?query=...`
+
+### 🧾 Fatura Yönetimi (`/invoices`)
+- Satış, alış ve iade faturaları.
+- Fatura satırlarında ürün, miktar, fiyat, KDV oranı.
+- **Otomatik toplam / vergi hesaplama.**
+- **Eksi stok kontrolü:** stok yetersizse hata döner.
+- **Stok entegrasyonu:** satışta stok düşer, alışta artar.
+- Fatura kesildiğinde cari borç eklenir (`balance`).
+
+### 💰 Tahsilat / Ödeme Yönetimi (`/payments`)
+- Faturalara bağlı tahsilat (TAHSILAT) veya ödeme (ODEME) kaydı.
+- `PaymentMethod`: `NAKIT`, `HAVALE`, `KREDI_KARTI`, `CEK`
+- Tahsilat sonrası fatura bakiyesi otomatik azalır.
+
+### 🔄 Stok Hareketleri (`/stock-movements`)
+- Her fatura satırı için otomatik hareket kaydı.
+- `MovementType`: `GIRIS` / `CIKIS`
+- Hangi faturadan, kimden ve ne kadar değişim olduğunu tutar.
+
+### 📊 Raporlama (`/reports`)
+- `/reports/stock-summary` → ürün bazında giriş/çıkış ve mevcut stok özeti.
+- `/reports/customer-balance` → müşteri bazında toplam borç, alacak, bakiye ve durum.
 
 ---
 
-## 🗂️ Proje Yapısı
+## ⚙️ Sistem Davranışı
+
+| İşlem | Otomatik Etki |
+|-------|----------------|
+| Satış faturası oluşturuldu | Stok azalır, cari borç eklenir |
+| Alış faturası oluşturuldu | Stok artar, cari alacak eklenir |
+| İade faturası oluşturuldu | Ters yönlü stok ve bakiye işlemi yapılır |
+| Tahsilat kaydedildi | Fatura bakiyesi düşer |
+| Ödeme kaydedildi | Satıcılara olan borç düşer |
+| Rapor çağrıldı | Canlı veriyle güncel özet döner |
+
+---
+
+## 🧩 Veri Modeli (özet)
 
 ```
-app/
-├── crud/
-│   ├── __init__.py
-│   ├── base.py                # Generic CRUDBase sınıfı
-│   ├── customer.py            # Customer CRUD (ilişkisel yapıyla)
-│   ├── customer_address.py    # Adres CRUD
-│   └── customer_bank.py       # Banka CRUD
+Customer
 │
-├── models/
-│   ├── __init__.py
-│   ├── customer.py            # Customer SQLAlchemy modeli
-│   ├── customer_address.py    # CustomerAddress SQLAlchemy modeli
-│   └── customer_bank.py       # CustomerBank SQLAlchemy modeli
+├── Invoice
+│     ├── InvoiceItem
+│     │       └── Product
+│     │
+│     └── Payment
 │
-├── routers/
-│   ├── __init__.py
-│   ├── base.py                # Dinamik CRUD router oluşturucu
-│   ├── customer.py            # Customer endpoint’leri
-│   ├── customer_address.py
-│   └── customer_bank.py
-│
-├── schemas/
-│   ├── __init__.py
-│   ├── customer.py            # Pydantic modeller (CustomerBase, Create, Update, Read)
-│   ├── customer_address.py    # Adres modelleri
-│   └── customer_bank.py       # Banka modelleri
-│
-├── database.py                # SQLAlchemy bağlantısı ve session ayarları
-├── main.py                    # FastAPI giriş noktası
-└── __init__.py
+└── StockMovement (otomatik log)
+        └── Product
 ```
 
 ---
 
-## ⚡ Kurulum
+## 🧱 Teknolojiler
 
-### 1️⃣ Sanal ortam oluştur
+| Bileşen | Açıklama |
+|----------|-----------|
+| **FastAPI** | REST API çatısı |
+| **SQLAlchemy** | ORM & veritabanı yönetimi |
+| **Pydantic v2** | Veri şemaları ve doğrulama |
+| **SQLite** | Veritabanı (geliştirme ortamı) |
+| **Uvicorn** | ASGI server |
+
+---
+
+## ⚙️ Kurulum
+
+### 1️⃣ Ortamı oluştur
 ```bash
-python -m venv .venv
+python -m venv venv
+venv\Scripts\activate  # (Windows)
+source venv/bin/activate  # (Linux / Mac)
 ```
 
-### 2️⃣ Ortamı etkinleştir
-Windows:
-```bash
-.venv\Scripts\activate
-```
-Linux/Mac:
-```bash
-source .venv/bin/activate
-```
-
-### 3️⃣ Gerekli bağımlılıkları yükle
+### 2️⃣ Gereksinimleri yükle
 ```bash
 pip install -r requirements.txt
 ```
 
-### 4️⃣ Sunucuyu başlat
+### 3️⃣ Sunucuyu çalıştır
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 5️⃣ Swagger arayüzü
-[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+### 4️⃣ API Arayüzü
+Tarayıcıda aç:
+👉 http://127.0.0.1:8000/docs
 
 ---
 
-## 🧪 Örnek JSON (Customer Create)
+## 📊 Mevcut Modüller
 
-```json
-{
-  "code": "MUST-001",
-  "type": "ALICI",
-  "institution_type": "KURUM",
-  "title": "OpenAI Teknoloji A.Ş.",
-  "name": "OpenAI",
-  "tax_number": "1234567890",
-  "addresses": [
-    {
-      "address_name": "Merkez Ofis",
-      "city": "İstanbul",
-      "district": "Levent",
-      "address": "Büyükdere Cad. No:100"
-    }
-  ],
-  "banks": [
-    {
-      "bank_name": "Ziraat Bankası",
-      "iban": "TR000000000000000000001111"
-    }
-  ]
-}
-```
+| Modül | Dosya |
+|--------|--------|
+| Müşteri Yönetimi | `app/models/customer.py` |
+| Ürün Yönetimi | `app/models/product.py` |
+| Uyumluluk | `app/models/product_compatibility.py` |
+| Fatura | `app/models/invoice.py`, `app/models/invoice_item.py` |
+| Tahsilat/Ödeme | `app/models/payment.py` |
+| Stok Hareketleri | `app/models/stock_movement.py` |
+| Raporlama | `app/routers/reports.py` |
 
 ---
 
-## 🔄 Örnek JSON (Customer Update / Partial Update)
+## ✅ Şu Anda Sistem Şunları Yapabiliyor
 
-```json
-{
-  "addresses": [
-    {
-      "id": 1,
-      "address_name": "Merkez Ofis (Güncellendi)",
-      "city": "İstanbul",
-      "district": "Maslak",
-      "address": "Maslak Mah. No:5"
-    },
-    {
-      "address_name": "Yeni Şube",
-      "city": "Ankara",
-      "district": "Çankaya",
-      "address": "Atatürk Bulvarı No:25"
-    }
-  ],
-  "banks": [
-    {
-      "id": 1,
-      "bank_name": "VakıfBank",
-      "iban": "TR000000000000000000002222"
-    }
-  ]
-}
-```
+| İşlev | Durum |
+|--------|--------|
+| Cari hesap ekleme / listeleme | ✅ |
+| Ürün ekleme / güncelleme / arama | ✅ |
+| Fatura oluşturma (alış, satış, iade) | ✅ |
+| Otomatik stok güncelleme | ✅ |
+| Eksi stok koruması | ✅ |
+| Stok hareket logu | ✅ |
+| Tahsilat ve ödeme yönetimi | ✅ |
+| Cari bakiye hesaplama | ✅ |
+| Stok özet raporu | ✅ |
+| Swagger arayüzü (test ortamı) | ✅ |
 
 ---
 
-## 🧭 Geliştirici Notları
+## 💡 Gelecek Planı
 
-- Kodlama standardı: **PEP8**
-- ORM: **SQLAlchemy**
-- Validation: **Pydantic**
-- Framework: **FastAPI**
-- Test arayüzü: **Swagger UI** (`/docs`)
-
----
-
-## 📈 Gelecek Planı
-
-- [ ] Ürün (Product) modülü
-- [ ] Stok & depo yönetimi
-- [ ] Fatura & satış işlemleri
-- [ ] Kullanıcı yetkilendirme (Auth)
-- [ ] AI destekli fatura/fiş okuma (LLM entegrasyonu)
+- 🏦 Kasa / Banka modülü  
+- 🧾 Fatura yazdırma (PDF)  
+- 📅 Vade & hatırlatma sistemi  
+- 🏬 Çoklu depo yönetimi  
+- 📈 Kâr–Zarar raporları  
+- 📤 Excel / PDF dışa aktarma  
+- 🤖 AI destekli sorgu (LLM)  
+- 🌐 Trendyol / N11 API entegrasyonu  
 
 ---
 
-## 👨‍💻 Geliştirici
+## 👨‍💻 Geliştirici Notu
 
-**Caner İbrahimoglu**  
-📦 [GitHub: caneribrahimoglu](https://github.com/caneribrahimoglu)
+Bu sistem, üretim için değil **öğrenme ve geliştirme** amaçlı bir temel iskelet projesidir.  
+Kod yapısı modülerdir; `CRUDBase` sınıfı sayesinde yeni modeller kolayca eklenebilir.
+
+> 🚀 “Fatura kes, stok düşsün, cari borçlansın, tahsilat yap bakiyeyi düşür,  
+ve tüm hareketleri raporla.”  
+Hepsi entegre şekilde çalışır.
 
 ---
 
-## 🧠 Lisans
-
-MIT License © 2025  
-Bu proje özgürce kullanılabilir, geliştirilebilir ve dağıtılabilir.
+## 🧩 Lisans
+MIT License  
+© 2025 Muhasebe Backend
