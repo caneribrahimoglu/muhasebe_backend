@@ -78,3 +78,5 @@ class CustomerRead(CustomerBase):
 
 from app.schemas.customer_address import CustomerAddressCreate, CustomerAddressUpdate
 from app.schemas.customer_bank import CustomerBankCreate, CustomerBankUpdate
+Customer = CustomerRead
+

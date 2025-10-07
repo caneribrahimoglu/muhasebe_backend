@@ -25,10 +25,12 @@ class CustomerAddressCreate(CustomerAddressBase):
 
 
 class CustomerAddressUpdate(CustomerAddressBase):
-    pass
+    id: Optional[int] = None   # 🔥 Güncelleme için ekledik
 
 
 class CustomerAddressRead(CustomerAddressBase):
     id: int
 
     model_config = {"from_attributes": True}
+
+CustomerAddress = CustomerAddressRead

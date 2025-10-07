@@ -1,3 +1,3 @@
-from .customer import CustomerBase, CustomerCreate, CustomerUpdate, CustomerRead
-from .customer_address import CustomerAddressBase, CustomerAddressCreate, CustomerAddressUpdate, CustomerAddressRead
-from .customer_bank import CustomerBankBase, CustomerBankCreate, CustomerBankUpdate, CustomerBankRead
+from .customer import Customer, CustomerCreate, CustomerUpdate
+from .customer_address import CustomerAddress, CustomerAddressCreate, CustomerAddressUpdate
+from .customer_bank import CustomerBank, CustomerBankCreate, CustomerBankUpdate

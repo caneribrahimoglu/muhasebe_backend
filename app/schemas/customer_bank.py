@@ -15,10 +15,12 @@ class CustomerBankCreate(CustomerBankBase):
 
 
 class CustomerBankUpdate(CustomerBankBase):
-    pass
+    id: Optional[int] = None   # 🔥 Güncelleme için ekledik
 
 
 class CustomerBankRead(CustomerBankBase):
     id: int
 
     model_config = {"from_attributes": True}
+
+CustomerBank = CustomerBankRead

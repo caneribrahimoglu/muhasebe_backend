@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import customer
+from app.routers import customer, customer_address, customer_bank
 from app.database import Base, engine
 
 # Veritabanı tablolarını oluştur
@@ -14,6 +14,8 @@ app = FastAPI(
 
 # Router'ları ekle
 app.include_router(customer.router)
+app.include_router(customer_address.router)
+app.include_router(customer_bank.router)
 
 
 # Basit test endpoint’i
