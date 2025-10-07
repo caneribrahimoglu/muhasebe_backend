@@ -1,146 +1,186 @@
-# 📘 Muhasebe Backend (FastAPI)
+# 💼 Muhasebe Backend
 
-Bu proje, **modüler**, **ölçeklenebilir** ve **bakımı kolay** bir FastAPI tabanlı backend uygulamasıdır.  
-Hedef: ERP/Muhasebe sistemine temel oluşturacak, müşteri, ürün, fatura vb. modülleri API olarak yönetmek.
+**Muhasebe Backend**, FastAPI, SQLAlchemy ve Pydantic kullanılarak geliştirilen, modüler, ölçeklenebilir ve ilişkisel bir **muhasebe yönetim sistemi API** projesidir.  
+Proje; müşteri, adres ve banka bilgilerini ilişkisel olarak yöneten bir altyapı üzerine kurulmuştur.
 
 ---
 
 ## 🚀 Özellikler
 
-- ✅ **FastAPI** tabanlı modern backend yapısı  
-- ✅ **SQLAlchemy ORM** ile veritabanı yönetimi  
-- ✅ **Pydantic v2** ile tip güvenliği ve veri doğrulama  
-- ✅ **Soyut CRUD mimarisi (Generic CRUD Base)**  
-- ✅ Katmanlı dosya yapısı:
-  - `models` → Veritabanı tabloları  
-  - `schemas` → Veri şemaları (request/response modelleri)  
-  - `crud` → CRUD işlemleri (soyutlama + spesifik işlemler)  
-  - `routers` → API endpoint’leri  
-  - `database.py` → Veritabanı bağlantısı  
-  - `main.py` → Uygulama başlatma noktası
+- ⚙️ **Generic CRUD altyapısı**
+  - `app/crud/base.py` üzerinden her model için ortak CRUD işlemleri.
+- 🧩 **İlişkisel müşteri yönetimi**
+  - Müşteriler (`Customer`) ile bağlı adres (`CustomerAddress`) ve banka (`CustomerBank`) kayıtları tek endpoint üzerinden yönetilir.
+- 🔁 **Kısmi güncelleme desteği**
+  - `PUT /customers/{id}` çağrısı:
+    - `id` varsa → günceller  
+    - `id` yoksa → yeni kayıt oluşturur  
+    - JSON’da olmayan `id` → ilgili kayıtları siler
+- 🧱 **Soyutlanmış router sistemi**
+  - `app/routers/base.py` üzerinden tüm CRUD endpoint’leri dinamik olarak üretilir.
+- 🧰 **Pydantic + SQLAlchemy uyumu**
+  - `model_config = {"from_attributes": True}` ile hızlı dönüşüm.
+- 🗃️ **SQLite veritabanı (PostgreSQL uyumlu yapı)**
 
 ---
 
-## 🧩 Dosya Yapısı
+## 🗂️ Proje Yapısı
 
-```bash
-muhasebe_backend/
+```
+app/
+├── crud/
+│   ├── __init__.py
+│   ├── base.py                # Generic CRUDBase sınıfı
+│   ├── customer.py            # Customer CRUD (ilişkisel yapıyla)
+│   ├── customer_address.py    # Adres CRUD
+│   └── customer_bank.py       # Banka CRUD
 │
-├── app/
-│   ├── crud/
-│   │   ├── base.py              # Generic CRUD soyutlaması
-│   │   └── _old_customers.py         # Customer’a özel CRUD işlemleri
-│   │
-│   ├── models/
-│   │   └── customer.py          # SQLAlchemy model (Customer)
-│   │
-│   ├── schemas/
-│   │   └── customer.py          # Pydantic şemaları (CustomerCreate, Update, vb.)
-│   │
-│   ├── routers/
-│   │   └── _old_customers.py         # Customer endpoint’leri (GET, POST, PUT, DELETE)
-│   │
-│   ├── database.py              # DB engine, session ve Base tanımı
-│   └── main.py                  # Uygulama girişi (FastAPI instance)
+├── models/
+│   ├── __init__.py
+│   ├── customer.py            # Customer SQLAlchemy modeli
+│   ├── customer_address.py    # CustomerAddress SQLAlchemy modeli
+│   └── customer_bank.py       # CustomerBank SQLAlchemy modeli
 │
-├── muhasebe.db                  # SQLite veritabanı (lokal)
-├── .gitignore
-├── requirements.txt
-└── README.md
+├── routers/
+│   ├── __init__.py
+│   ├── base.py                # Dinamik CRUD router oluşturucu
+│   ├── customer.py            # Customer endpoint’leri
+│   ├── customer_address.py
+│   └── customer_bank.py
+│
+├── schemas/
+│   ├── __init__.py
+│   ├── customer.py            # Pydantic modeller (CustomerBase, Create, Update, Read)
+│   ├── customer_address.py    # Adres modelleri
+│   └── customer_bank.py       # Banka modelleri
+│
+├── database.py                # SQLAlchemy bağlantısı ve session ayarları
+├── main.py                    # FastAPI giriş noktası
+└── __init__.py
 ```
 
 ---
 
-## ⚙️ Kurulum
+## ⚡ Kurulum
 
-### 1️⃣ Sanal ortam oluştur ve aktif et
-
+### 1️⃣ Sanal ortam oluştur
 ```bash
 python -m venv .venv
-source .venv/bin/activate   # (Linux/Mac)
-.venv\Scripts\activate      # (Windows)
 ```
 
-### 2️⃣ Gerekli paketleri yükle
+### 2️⃣ Ortamı etkinleştir
+Windows:
+```bash
+.venv\Scripts\activate
+```
+Linux/Mac:
+```bash
+source .venv/bin/activate
+```
 
+### 3️⃣ Gerekli bağımlılıkları yükle
 ```bash
 pip install -r requirements.txt
 ```
 
-### 3️⃣ Sunucuyu başlat
-
+### 4️⃣ Sunucuyu başlat
 ```bash
 uvicorn app.main:app --reload
 ```
 
-### 4️⃣ Swagger arayüzü üzerinden test et
-
-🔗 [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
+### 5️⃣ Swagger arayüzü
+[http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
 
 ---
 
-## 🧠 Örnek Endpoint’ler
-
-### 🔹 Tüm müşterileri getir
-`GET /customers/`
-
-### 🔹 Tek müşteriyi getir
-`GET /customers/{customer_id}`
-
-### 🔹 Yeni müşteri oluştur
-`POST /customers/`
+## 🧪 Örnek JSON (Customer Create)
 
 ```json
 {
-  "name": "Caner İbrahim",
-  "email": "caner@example.com"
+  "code": "MUST-001",
+  "type": "ALICI",
+  "institution_type": "KURUM",
+  "title": "OpenAI Teknoloji A.Ş.",
+  "name": "OpenAI",
+  "tax_number": "1234567890",
+  "addresses": [
+    {
+      "address_name": "Merkez Ofis",
+      "city": "İstanbul",
+      "district": "Levent",
+      "address": "Büyükdere Cad. No:100"
+    }
+  ],
+  "banks": [
+    {
+      "bank_name": "Ziraat Bankası",
+      "iban": "TR000000000000000000001111"
+    }
+  ]
 }
 ```
 
-### 🔹 Müşteri bilgilerini güncelle
-`PUT /customers/{customer_id}`
+---
+
+## 🔄 Örnek JSON (Customer Update / Partial Update)
 
 ```json
 {
-  "name": "Caner İ. Güncellendi"
+  "addresses": [
+    {
+      "id": 1,
+      "address_name": "Merkez Ofis (Güncellendi)",
+      "city": "İstanbul",
+      "district": "Maslak",
+      "address": "Maslak Mah. No:5"
+    },
+    {
+      "address_name": "Yeni Şube",
+      "city": "Ankara",
+      "district": "Çankaya",
+      "address": "Atatürk Bulvarı No:25"
+    }
+  ],
+  "banks": [
+    {
+      "id": 1,
+      "bank_name": "VakıfBank",
+      "iban": "TR000000000000000000002222"
+    }
+  ]
 }
 ```
 
-### 🔹 Müşteri sil
-`DELETE /customers/{customer_id}`
+---
+
+## 🧭 Geliştirici Notları
+
+- Kodlama standardı: **PEP8**
+- ORM: **SQLAlchemy**
+- Validation: **Pydantic**
+- Framework: **FastAPI**
+- Test arayüzü: **Swagger UI** (`/docs`)
 
 ---
 
-## 🧱 Yapısal Mantık
+## 📈 Gelecek Planı
 
-- `base.py` içerisindeki **CRUDBase** sınıfı,  
-  diğer tüm modeller için tekrar kullanılabilir CRUD işlevleri sağlar.  
-- Yeni bir tablo ekleneceğinde yalnızca:
-  1. `models/` altına yeni model eklenir  
-  2. `schemas/` altına karşılık gelen şemalar yazılır  
-  3. `crud/` altında `new_model_crud = CRUDBase(Model, SchemaCreate, SchemaUpdate)` yapılır  
-  4. `routers/` altına yeni router eklenir  
-  5. `main.py` içine `app.include_router(...)` eklenir  
-
-Hepsi bu kadar.
+- [ ] Ürün (Product) modülü
+- [ ] Stok & depo yönetimi
+- [ ] Fatura & satış işlemleri
+- [ ] Kullanıcı yetkilendirme (Auth)
+- [ ] AI destekli fatura/fiş okuma (LLM entegrasyonu)
 
 ---
 
-## 🗺️ Yol Haritası
+## 👨‍💻 Geliştirici
 
-| Adım | Özellik | Açıklama |
-|------|----------|-----------|
-| ✅ 1 | Müşteri CRUD | Temel CRUD tamamlandı |
-| 🔜 2 | Ürün (Product) CRUD | Aynı mimariyle yeni modül |
-| 🔜 3 | PostgreSQL geçişi | SQLite → PostgreSQL |
-| 🔜 4 | Kullanıcı Auth sistemi | JWT tabanlı giriş/çıkış |
-| 🔜 5 | Fatura Modülü | Müşteri ve ürünlerle ilişkili yapı |
-| 🔜 6 | Frontend (React) entegrasyonu | Yönetim paneli |
+**Caner İbrahimoglu**  
+📦 [GitHub: caneribrahimoglu](https://github.com/caneribrahimoglu)
 
 ---
 
-## 👨‍💻 Geliştirici Notları
+## 🧠 Lisans
 
-- Kod yapısı **modülerdir**: her modül bağımsız olarak genişletilebilir.  
-- CRUD soyutlaması sayesinde, yeni tablo eklemek **5 dakikalık iştir.**  
-- Proje; FastAPI + SQLAlchemy + Pydantic v2 mimarisinin **temiz, endüstri standardı** örneğidir.
+MIT License © 2025  
+Bu proje özgürce kullanılabilir, geliştirilebilir ve dağıtılabilir.
