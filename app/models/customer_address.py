@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database import Base
+#from app.database import Base
+from app.models.customer import BaseModel
 
 
-class CustomerAddress(Base):
+class CustomerAddress(BaseModel):
     __tablename__ = "customer_addresses"
 
     id = Column(Integer, primary_key=True, index=True)

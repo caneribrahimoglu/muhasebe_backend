@@ -1,9 +1,10 @@
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy.orm import relationship
-from app.database import Base
+#from app.database import Base
+from app.models.customer import BaseModel
 
 
-class CustomerBank(Base):
+class CustomerBank(BaseModel):
     __tablename__ = "customer_banks"
 
     id = Column(Integer, primary_key=True, index=True)

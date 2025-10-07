@@ -1,6 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Enum, Date, Float
 from sqlalchemy.orm import relationship
-from app.database import Base
+#from app.database import Base
+from app.models.base_model import BaseModel
 import enum
 
 
@@ -20,7 +21,7 @@ class Currency(enum.Enum):
     EUR = "EUR"
 
 
-class Customer(Base):
+class Customer(BaseModel):
     __tablename__ = "customers"
 
     id = Column(Integer, primary_key=True, index=True)

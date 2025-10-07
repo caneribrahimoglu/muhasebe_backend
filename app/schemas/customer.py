@@ -1,6 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import Optional, List
-from datetime import date
+from datetime import date, datetime
 from enum import Enum
 
 from app.schemas.customer_address import CustomerAddressRead
@@ -72,6 +72,10 @@ class CustomerRead(CustomerBase):
     id: int
     addresses: List[CustomerAddressRead] = []
     banks: List[CustomerBankRead] = []
+
+    #Zaman damgaları (ekledik)
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     model_config = {"from_attributes": True}
 
