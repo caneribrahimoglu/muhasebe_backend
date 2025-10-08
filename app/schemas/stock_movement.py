@@ -1,7 +1,6 @@
 from pydantic import BaseModel
-from datetime import datetime
-from enum import Enum
 from typing import Optional
+from enum import Enum
 
 
 class MovementType(str, Enum):
@@ -11,12 +10,13 @@ class MovementType(str, Enum):
 
 class StockMovementBase(BaseModel):
     product_id: int
-    invoice_id: int
-    customer_id: Optional[int] = None
     movement_type: MovementType
     quantity: float
-    stock_after: float
-    description: Optional[str] = None
+    unit_price: float
+    currency: str
+    note: Optional[str] = None
+    invoice_id: Optional[int] = None  # Artık opsiyonel
+    stock_after: Optional[float] = None  # Otomatik hesaplanır
 
 
 class StockMovementCreate(StockMovementBase):
@@ -25,6 +25,6 @@ class StockMovementCreate(StockMovementBase):
 
 class StockMovementRead(StockMovementBase):
     id: int
-    timestamp: datetime
 
-    model_config = {"from_attributes": True}
+    class Config:
+        from_attributes = True

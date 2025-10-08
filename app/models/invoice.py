@@ -26,4 +26,17 @@ class Invoice(BaseModel):
     description = Column(String(255))
 
     customer = relationship("Customer")
-    items = relationship("InvoiceItem", back_populates="invoice", cascade="all, delete-orphan")
+
+    # 🔹 Fatura kalemleri ilişkisi
+    items = relationship(
+        "InvoiceItem",
+        back_populates="invoice",
+        cascade="all, delete-orphan"
+    )
+
+    # 🔹 Stok hareketleri ilişkisi
+    stock_movements = relationship(
+        "StockMovement",
+        back_populates="invoice",
+        cascade="all, delete-orphan"
+    )

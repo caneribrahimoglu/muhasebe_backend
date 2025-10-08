@@ -1,19 +1,33 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import date
-from enum import Enum
-from app.schemas.invoice_item import InvoiceItemCreate, InvoiceItemRead
+from app.models.invoice import InvoiceType
 
 
-class InvoiceType(str, Enum):
-    SATIS = "SATIS"
-    ALIS = "ALIS"
-    IADE = "IADE"
+# --- InvoiceItem (kalem) şeması ---
+class InvoiceItemBase(BaseModel):
+    product_id: int
+    quantity: float
+    unit_price: float
+    vat_rate: float = 20
 
 
+class InvoiceItemCreate(InvoiceItemBase):
+    pass
+
+
+class InvoiceItemRead(InvoiceItemBase):
+    id: int
+    total: Optional[float] = 0
+
+    class Config:
+        from_attributes = True
+
+
+# --- Invoice (fatura) şeması ---
 class InvoiceBase(BaseModel):
-    invoice_no: Optional[str] = None
-    invoice_type: InvoiceType = InvoiceType.SATIS
+    invoice_no: str
+    invoice_type: InvoiceType
     customer_id: Optional[int] = None
     date: Optional[date] = None
     currency: str = "TRY"
@@ -25,7 +39,7 @@ class InvoiceCreate(InvoiceBase):
 
 
 class InvoiceUpdate(InvoiceBase):
-    items: Optional[List[InvoiceItemCreate]] = []
+    items: Optional[List[InvoiceItemCreate]] = None
 
 
 class InvoiceRead(InvoiceBase):
@@ -33,7 +47,8 @@ class InvoiceRead(InvoiceBase):
     total_amount: float
     tax_amount: float
     grand_total: float
-    items: List[InvoiceItemRead] = []
+    balance: float
+    items: List[InvoiceItemRead]
 
-    model_config = {"from_attributes": True}
-
+    class Config:
+        from_attributes = True

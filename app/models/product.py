@@ -37,3 +37,5 @@ class Product(BaseModel):
         back_populates="product",
         cascade="all, delete-orphan"
     )
+    stock_movements = relationship("StockMovement", back_populates="product", cascade="all, delete-orphan")
+
