@@ -1,87 +1,72 @@
-# app/services/invoice_service.py
-from sqlalchemy.orm import Session
 from app.services.service_base import ServiceBase
-from app.services.stock_service import StockService
-from app.services.customer_service import CustomerService
 from app.crud.invoice import crud_invoice
+from app.models.customer_transaction import TransactionDirection, TransactionReference
+from app.models.stock_movement import MovementType
+from app.services.customer_service import CustomerService
+from app.schemas.stock_movement import StockMovementCreate
+from app.schemas.invoice import InvoiceCreate
 from app.crud.product import crud_product
-from app.schemas.invoice import InvoiceCreate, InvoiceItemCreate, InvoiceType
-from app.schemas.stock_movement import MovementType
+from app.crud.stock_movement import crud_stock_movement
+
 
 class InvoiceService(ServiceBase):
     """
     Fatura işlemleri servis katmanı.
-    Fatura oluşturma, stok ve cari güncellemelerini yönetir.
+    Fatura oluşturma, stok düşümü, cari işlemler gibi süreçleri yönetir.
     """
 
-    def __init__(self, db: Session):
-        super().__init__(db)
-        self.stock_service = StockService(db)
-        self.customer_service = CustomerService(db)
+    def create_invoice(self, obj_in: InvoiceCreate):
+        # 1️⃣ Fatura iskeletini oluştur
+        invoice = crud_invoice.create_skeleton(self.db, obj_in)
 
-    def create_invoice(self, data: InvoiceCreate):
-        try:
-            # 1. Faturayı oluştur
-            invoice = crud_invoice.create_skeleton(self.db, data)
+        total = 0
+        tax_total = 0
 
-            total = 0.0
-            tax = 0.0
+        # 2️⃣ Kalemleri ekle ve stokları düş
+        for item in obj_in.items:
+            crud_invoice.add_item(self.db, invoice_id=invoice.id, item=item)
 
-            # 2. Fatura kalemlerini işle
-            for item in data.items or []:
-                product = crud_product.get(self.db, item.product_id)
-                if not product:
-                    raise ValueError(f"Ürün bulunamadı (id={item.product_id})")
+            product = crud_product.get(self.db, item.product_id)
+            if not product:
+                raise ValueError(f"Ürün bulunamadı (ID: {item.product_id})")
 
-                # Kalemi ekle
-                crud_invoice.add_item(self.db, invoice_id=invoice.id, item=item)
+            # Stok azalt
+            if product.stock_amount is not None:
+                product.stock_amount -= item.quantity
+                if product.stock_amount < 0:
+                    raise ValueError(f"Stok yetersiz: {product.name}")
+                self.db.commit()
+                self.db.refresh(product)
 
-                # Tutarları hesapla
-                line_total = item.quantity * item.unit_price
-                line_tax = line_total * (item.vat_rate / 100.0)
-                total += line_total
-                tax += line_tax
-
-                # Stok hareketi oluştur
-                if data.invoice_type == InvoiceType.SATIS:
-                    self.stock_service.adjust_stock(
-                        product_id=item.product_id,
-                        quantity=item.quantity,
-                        unit_price=item.unit_price,
-                        currency=data.currency,
-                        movement_type=MovementType.CIKIS,
-                        note=f"Satış faturası #{invoice.id}",
-                        invoice_id=invoice.id,
-                    )
-                elif data.invoice_type == InvoiceType.ALIS:
-                    self.stock_service.adjust_stock(
-                        product_id=item.product_id,
-                        quantity=item.quantity,
-                        unit_price=item.unit_price,
-                        currency=data.currency,
-                        movement_type=MovementType.GIRIS,
-                        note=f"Alış faturası #{invoice.id}",
-                        invoice_id=invoice.id,
-                    )
-
-            # 3. Fatura toplamlarını finalize et
-            crud_invoice.finalize_totals(
-                self.db,
+            # Stok hareketi kaydet
+            stock_movement = StockMovementCreate(
+                product_id=item.product_id,
+                movement_type=MovementType.CIKIS if obj_in.invoice_type == "SATIS" else MovementType.GIRIS,
+                quantity=item.quantity,
+                unit_price=item.unit_price,
+                currency=obj_in.currency,
+                note=f"Satış faturası #{invoice.id}" if obj_in.invoice_type == "SATIS" else f"Alış faturası #{invoice.id}",
                 invoice_id=invoice.id,
-                total=total,
-                tax=tax,
+                stock_after=product.stock_amount
             )
+            crud_stock_movement.create(self.db, stock_movement)
 
-            # 4. Cari bakiyesini güncelle
-            if data.customer_id:
-                if data.invoice_type == InvoiceType.SATIS:
-                    self.customer_service.add_debt(data.customer_id, total + tax)
-                elif data.invoice_type == InvoiceType.ALIS:
-                    self.customer_service.add_credit(data.customer_id, total + tax)
+            # Toplam hesapla
+            total += item.unit_price * item.quantity
+            tax_total += (item.unit_price * item.quantity) * (item.vat_rate / 100)
 
-            self.db.refresh(invoice)
-            return invoice
+        # 3️⃣ Fatura toplamlarını güncelle
+        crud_invoice.finalize_totals(self.db, invoice_id=invoice.id, total=total, tax=tax_total)
 
-        except Exception as e:
-            self.db.rollback()
-            raise e
+        # 4️⃣ Cari hareket kaydı oluştur
+        customer_service = CustomerService(self.db)
+        customer_service.record_transaction(
+            customer_id=invoice.customer_id,
+            amount=total + tax_total,
+            direction=TransactionDirection.BORC if obj_in.invoice_type == "SATIS" else TransactionDirection.ALACAK,
+            description=f"Satış faturası #{invoice.id}" if obj_in.invoice_type == "SATIS" else f"Alış faturası #{invoice.id}",
+            reference_type=TransactionReference.FATURA,
+            reference_id=invoice.id
+        )
+
+        return invoice

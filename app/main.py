@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from app.routers import customer, customer_address, customer_bank, products, product_compatibility, invoice, \
-    stock_movement, reports, payment
+    stock_movement, reports, payment, customer_transaction
 from app.database import Base, engine
 
 # Veritabanı tablolarını oluştur
@@ -23,6 +23,7 @@ app.include_router(invoice.router)
 app.include_router(stock_movement.router)
 app.include_router(reports.router)
 app.include_router(payment.router)
+app.include_router(customer_transaction.router)
 
 # Basit test endpoint’i
 @app.get("/")

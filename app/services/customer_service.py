@@ -34,6 +34,8 @@ class CustomerService(ServiceBase):
 
     def record_transaction(self, customer_id: int, amount: float, direction: TransactionDirection, description: str,
                            reference_type: TransactionReference, reference_id: int | None = None):
+        print(f"🧾 record_transaction() çağrıldı: {description} — {amount}₺ yön={direction.value}")
+
         # Mevcut bakiyeyi çek
         customer = self.db.query(Customer).filter(Customer.id == customer_id).first()
         if not customer:
@@ -58,6 +60,7 @@ class CustomerService(ServiceBase):
         )
 
         crud_customer_transaction.create(self.db, tx)
+        print("✅ Cari hareket kaydı oluşturuldu.")
 
         # Müşteri bakiyesini güncelle
         customer.deposit_amount = new_balance
