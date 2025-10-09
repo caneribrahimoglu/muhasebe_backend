@@ -88,4 +88,4 @@ class CRUDCustomer(CRUDBase[models.Customer, schemas.CustomerCreate, schemas.Cus
 
 
 # Dışa aktarılan CRUD nesnesi
-customer = CRUDCustomer(models.Customer)
+crud_customer = CRUDCustomer(models.Customer)

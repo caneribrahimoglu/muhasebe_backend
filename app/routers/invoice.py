@@ -6,48 +6,15 @@ from app.crud.product import crud_product
 from app.crud.stock_movement import crud_stock_movement
 from app.schemas.invoice import InvoiceCreate, InvoiceRead, InvoiceType
 from app.schemas.stock_movement import StockMovementCreate
-
+from app.services.invoice_service import InvoiceService
 
 router = APIRouter(prefix="/invoices", tags=["Invoices"])
 
 
 @router.post("/", response_model=InvoiceRead)
 def create_invoice(invoice_in: InvoiceCreate, db: Session = Depends(get_db)):
-    # Yeni fatura kaydı
-    db_invoice = crud_invoice.create(db, obj_in=invoice_in)
-    db.commit()
-    db.refresh(db_invoice)
-
-    # Her satır için stok hareketi oluştur
-    for item in invoice_in.items:
-        product = crud_product.get(db, item.product_id)
-        if not product:
-            raise HTTPException(status_code=404, detail=f"Ürün ID {item.product_id} bulunamadı")
-        if invoice_in.invoice_type == InvoiceType.SATIS and product.stock_amount - item.quantity < 0:
-            raise HTTPException(status_code=400, detail=f"Yetersiz stok: {product.name}")
-        # Stok güncelle
-        if invoice_in.invoice_type == InvoiceType.SATIS:
-            product.stock_amount -= item.quantity
-        elif invoice_in.invoice_type == InvoiceType.ALIS:
-            product.stock_amount += item.quantity
-        db.add(product)
-
-        # Hareket kaydı
-        movement_data = {
-            "product_id": item.product_id,
-            "movement_type": "CIKIS" if invoice_in.invoice_type == InvoiceType.SATIS else "GIRIS",
-            "quantity": item.quantity,
-            "unit_price": item.unit_price,
-            "currency": invoice_in.currency,
-            "note": invoice_in.invoice_no,
-            "invoice_id": db_invoice.id,
-            "stock_after": product.stock_amount,
-        }
-        crud_stock_movement.create(db, obj_in=StockMovementCreate(**movement_data))
-
-    db.commit()
-    db.refresh(db_invoice)
-    return db_invoice
+    service = InvoiceService(db)
+    return service.create_invoice(invoice_in)
 
 
 @router.get("/", response_model=list[InvoiceRead])
