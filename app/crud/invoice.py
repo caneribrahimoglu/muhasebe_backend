@@ -1,30 +1,30 @@
 from sqlalchemy.orm import Session
-from app.models.invoice import Invoice
-from app.models.invoice_item import InvoiceItem
+from app.models.invoice import Invoice as InvoiceModel
+from app.models.invoice_item import InvoiceItem as InvoiceItemModel
 from app.schemas.invoice import InvoiceCreate, InvoiceItemCreate, InvoiceUpdate
 from app.crud.base import CRUDBase
 
-class CRUDInvoice(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
-    def create_skeleton(self, db: Session, obj_in: InvoiceCreate) -> Invoice:
+class CRUDInvoice(CRUDBase[InvoiceModel, InvoiceCreate, InvoiceUpdate]):
+    def create_skeleton(self, db: Session, obj_in: InvoiceCreate) -> InvoiceModel:
         """Kalemler hariç fatura iskeletini oluşturur."""
         data = obj_in.model_dump(exclude={'items'})
-        invoice = Invoice(**data)
+        invoice = InvoiceModel(**data)
         db.add(invoice)
         db.commit()
         db.refresh(invoice)
         return invoice
 
-    def add_item(self, db: Session, *, invoice_id: int, item: InvoiceItemCreate) -> InvoiceItem:
+    def add_item(self, db: Session, *, invoice_id: int, item: InvoiceItemCreate) -> InvoiceItemModel:
         """Faturaya yeni kalem ekler."""
-        db_item = InvoiceItem(invoice_id=invoice_id, **item.model_dump())
+        db_item = InvoiceItemModel(invoice_id=invoice_id, **item.model_dump())
         db.add(db_item)
         db.commit()
         db.refresh(db_item)
         return db_item
 
-    def finalize_totals(self, db: Session, *, invoice_id: int, total: float, tax: float) -> Invoice:
+    def finalize_totals(self, db: Session, *, invoice_id: int, total: float, tax: float) -> InvoiceModel:
         """Toplam tutarları ve vergiyi fatura üzerine yazar."""
-        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        invoice = db.query(InvoiceModel).filter(InvoiceModel.id == invoice_id).first()
         if not invoice:
             raise ValueError("Fatura bulunamadı.")
         invoice.total_amount = total
@@ -35,4 +35,4 @@ class CRUDInvoice(CRUDBase[Invoice, InvoiceCreate, InvoiceUpdate]):
         return invoice
 
 
-crud_invoice = CRUDInvoice(Invoice)
+crud_invoice = CRUDInvoice(InvoiceModel)

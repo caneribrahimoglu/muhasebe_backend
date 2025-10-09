@@ -26,7 +26,7 @@ class InvoiceItemRead(InvoiceItemBase):
 
 # --- Invoice (fatura) şeması ---
 class InvoiceBase(BaseModel):
-    invoice_no: str
+    invoice_no: str | None = None
     invoice_type: InvoiceType
     customer_id: Optional[int] = None
     date: Optional[date] = None

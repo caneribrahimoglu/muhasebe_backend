@@ -3,7 +3,7 @@ from app import crud, schemas
 
 router = generate_router(
     name="Customer",
-    crud=crud.customer,
+    crud=crud.crud_customer,
     schema=schemas.Customer,
     create_schema=schemas.CustomerCreate,
     update_schema=schemas.CustomerUpdate,

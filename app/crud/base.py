@@ -13,10 +13,7 @@ UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
     """Tüm modeller için temel CRUD işlemlerini yöneten generic sınıf."""
 
-    def __init__(self, model: Type[ModelType]):
-        """
-        model: SQLAlchemy model (örnek: Customer)
-        """
+    def __init__(self, model: type[ModelType]) -> None:   # <-- kritik değişiklik
         self.model = model
 
     # ---------- READ ----------
