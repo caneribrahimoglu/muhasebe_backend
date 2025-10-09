@@ -64,3 +64,5 @@ class Customer(BaseModel):
     # İlişkiler
     addresses = relationship("CustomerAddress", back_populates="customer", cascade="all, delete-orphan")
     banks = relationship("CustomerBank", back_populates="customer", cascade="all, delete-orphan")
+    transactions = relationship("CustomerTransaction", back_populates="customer", cascade="all, delete-orphan")
+

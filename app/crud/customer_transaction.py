@@ -1,0 +1,5 @@
+from app.crud.base import CRUDBase
+from app.models.customer_transaction import CustomerTransaction
+from app.schemas.customer_transaction import CustomerTransactionCreate, CustomerTransactionUpdate
+
+crud_customer_transaction = CRUDBase[CustomerTransaction, CustomerTransactionCreate, CustomerTransactionUpdate](CustomerTransaction)
