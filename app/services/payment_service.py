@@ -1,50 +1,83 @@
-from app.services.service_base import ServiceBase
-from app.models.customer_transaction import TransactionDirection, TransactionReference
-from app.services.customer_service import CustomerService
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+
+from app.crud import payment, customer_transaction, cash_transaction, bank_transaction, invoice
+from app.models.customer_transaction import TransactionDirection
+from app.models.cash_transaction import CashDirection
+from app.models.bank_transaction import BankDirection
 from app.schemas.payment import PaymentCreate
-from app.crud.payment import crud_payment
 
 
-class PaymentService(ServiceBase):
-    """
-    Tahsilat ve ödeme işlemlerini yönetir.
-    Örnek: Müşteriden tahsilat yapmak, tedarikçiye ödeme yapmak.
-    """
+class PaymentService:
+    def __init__(self, db: Session):
+        self.db = db
 
-    def create_payment(self, obj_in: PaymentCreate):
-        # 🔒 Cari zorunlu kontrol
-        if not obj_in.customer_id:
-            raise ValueError("Cari seçilmeden tahsilat/ödeme oluşturulamaz.")
+    def create_payment(self, payment_in: PaymentCreate):
+        """Yeni ödeme/tahsilat oluşturur ve ilgili hesapları günceller."""
+        try:
+            # --- 1️⃣ Ödemeyi kaydet ---
+            db_payment = payment.create(db=self.db, obj_in=payment_in)
 
-        # 1️⃣ Ödeme kaydını oluştur
-        payment = crud_payment.create(self.db, obj_in)
-        self.db.refresh(payment)  # ID'nin garanti gelmesi için
+            # --- 2️⃣ Cari hareket oluştur ---
+            customer_data = {
+                "customer_id": payment_in.customer_id,
+                "amount": payment_in.amount,
+                "direction": (
+                    TransactionDirection.ALACAK if payment_in.is_collection else TransactionDirection.BORC
+                ),
+                "reference_type": "ODEME",
+                "reference_id": db_payment.id,
+                "description": f"Ödeme #{db_payment.id}",
+            }
+            customer_transaction.create(db=self.db, obj_in=customer_data)
 
-        print(f"💰 PaymentService: {obj_in.payment_type} işlemi için cari hareket başlatılıyor...")
+            # --- 3️⃣ Kasa veya Banka hareketi oluştur ---
+            if payment_in.cash_account_id:
+                cash_data = {
+                    "cash_account_id": payment_in.cash_account_id,
+                    "amount": payment_in.amount,
+                    "direction": (
+                        CashDirection.GIRIS if payment_in.is_collection else CashDirection.CIKIS
+                    ),
+                    "reference_type": "ODEME",
+                    "reference_id": db_payment.id,
+                    "description": f"Kasa hareketi (Ödeme #{db_payment.id})",
+                }
+                cash_transaction.create(db=self.db, obj_in=cash_data)
 
-        # 2️⃣ Cari hareketini oluştur
-        customer_service = CustomerService(self.db)
+            elif payment_in.bank_account_id:
+                bank_data = {
+                    "bank_account_id": payment_in.bank_account_id,
+                    "amount": payment_in.amount,
+                    "direction": (
+                        BankDirection.GIRIS if payment_in.is_collection else BankDirection.CIKIS
+                    ),
+                    "reference_type": "ODEME",
+                    "reference_id": db_payment.id,
+                    "description": f"Banka hareketi (Ödeme #{db_payment.id})",
+                }
+                bank_transaction.create(db=self.db, obj_in=bank_data)
 
-        # Tahsilat = ALACAK, Ödeme = BORC
-        direction = (
-            TransactionDirection.ALACAK
-            if obj_in.payment_type == "TAHSILAT"
-            else TransactionDirection.BORC
-        )
+            # --- 4️⃣ Fatura bakiyesini güncelle ---
+            if payment_in.invoice_id:
+                db_invoice = invoice.get(self.db, payment_in.invoice_id)
+                if db_invoice:
+                    # Toplam ödenen miktarı hesapla
+                    total_paid = (
+                        self.db.query(payment.model)
+                        .filter(payment.model.invoice_id == db_invoice.id)
+                        .with_entities(payment.model.amount)
+                        .all()
+                    )
+                    total_paid_sum = sum(p[0] for p in total_paid)
+                    db_invoice.balance = max(db_invoice.grand_total - total_paid_sum, 0)
+                    self.db.add(db_invoice)
 
-        description = (
-            f"{obj_in.method.value.title()} ile tahsilat #{payment.id}"
-            if obj_in.payment_type == "TAHSILAT"
-            else f"{obj_in.method.value.title()} ile ödeme #{payment.id}"
-        )
+            # --- 5️⃣ Commit ---
+            self.db.commit()
+            self.db.refresh(db_payment)
+            return db_payment
 
-        customer_service.record_transaction(
-            customer_id=obj_in.customer_id,
-            amount=obj_in.amount,
-            direction=direction,
-            description=description,
-            reference_type=TransactionReference.ODEME,
-            reference_id=payment.id
-        )
-
-        return payment
+        except SQLAlchemyError as e:
+            self.db.rollback()
+            raise RuntimeError(f"Ödeme oluşturulurken hata: {str(e)}") from e
