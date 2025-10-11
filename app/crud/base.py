@@ -1,25 +1,30 @@
-from typing import Type, TypeVar, Generic, List, Any
+from typing import TypeVar, Generic, List, Any, Type
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from app.database import Base
 from datetime import datetime, UTC
 
-# Generic type tanımları
+# ---------- Generic type tanımları ----------
 ModelType = TypeVar("ModelType", bound=Base)
 CreateSchemaType = TypeVar("CreateSchemaType", bound=BaseModel)
 UpdateSchemaType = TypeVar("UpdateSchemaType", bound=BaseModel)
 
 
 class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
-    """Tüm modeller için temel CRUD işlemlerini yöneten generic sınıf."""
+    """
+    Tüm modeller için temel CRUD işlemlerini yöneten generic sınıf.
+    Tüm CRUD sınıfları buradan miras alır.
+    """
+    model: Type[ModelType]  # <-- IDE için kritik type hint
 
-    def __init__(self, model: type[ModelType]) -> None:   # <-- kritik değişiklik
+    def __init__(self, model: Type[ModelType]) -> None:
+        """Model sınıfını alır ve CRUDBase'e bağlar."""
         self.model = model
 
     # ---------- READ ----------
     def get(self, db: Session, obj_id: int) -> ModelType | None:
         """ID ile tek kayıt getirir."""
-        return db.query(self.model).filter(self.model.id == obj_id).first()  # type: ignore
+        return db.query(self.model).filter(self.model.id == obj_id).first()
 
     def get_multi(self, db: Session, skip: int = 0, limit: int = 100) -> List[ModelType]:
         """Tüm kayıtları sayfa bazlı getirir."""
@@ -35,7 +40,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
 
-    # ---------- UPDATE ----------
+    # ---------- UPDATE (PUT) ----------
     def update(self, db: Session, db_obj: ModelType, obj_in: UpdateSchemaType) -> ModelType:
         """Tam güncelleme (PUT)."""
         update_data = obj_in.model_dump(exclude_unset=True)
@@ -51,7 +56,7 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         db.refresh(db_obj)
         return db_obj
 
-    # ---------- PARTIAL UPDATE ----------
+    # ---------- PARTIAL UPDATE (PATCH) ----------
     def update_partial(
         self,
         db: Session,
@@ -59,12 +64,8 @@ class CRUDBase(Generic[ModelType, CreateSchemaType, UpdateSchemaType]):
         obj_in: UpdateSchemaType | dict[str, Any]
     ) -> ModelType:
         """Parçalı güncelleme (PATCH)."""
-        if isinstance(obj_in, dict):
-            update_data = obj_in
-        else:
-            update_data = obj_in.model_dump(exclude_unset=True)
+        update_data = obj_in if isinstance(obj_in, dict) else obj_in.model_dump(exclude_unset=True)
 
-        # updated_at varsa otomatik güncelle
         if hasattr(db_obj, "updated_at"):
             update_data["updated_at"] = datetime.now(UTC)
 

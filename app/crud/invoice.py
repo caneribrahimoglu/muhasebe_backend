@@ -35,4 +35,4 @@ class CRUDInvoice(CRUDBase[InvoiceModel, InvoiceCreate, InvoiceUpdate]):
         return invoice
 
 
-crud_invoice = CRUDInvoice(InvoiceModel)
+invoice = CRUDInvoice(InvoiceModel)

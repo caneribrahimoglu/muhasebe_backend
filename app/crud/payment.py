@@ -3,6 +3,8 @@ from app.crud.base import CRUDBase
 from app.models.payment import Payment
 from app.schemas.payment import PaymentCreate, PaymentUpdate
 from app.models.invoice import Invoice
+from sqlalchemy import func
+
 
 
 class CRUDPayment(CRUDBase[Payment, PaymentCreate, PaymentUpdate]):
@@ -35,4 +37,5 @@ class CRUDPayment(CRUDBase[Payment, PaymentCreate, PaymentUpdate]):
         return db_obj
 
 
-crud_payment = CRUDPayment(Payment)
+
+payment = CRUDPayment(Payment)

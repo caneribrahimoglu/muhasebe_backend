@@ -12,4 +12,4 @@ class CRUDProductCompatibility(
     pass
 
 
-crud_product_compatibility = CRUDProductCompatibility(ProductCompatibility)
+product_compatibility = CRUDProductCompatibility(ProductCompatibility)

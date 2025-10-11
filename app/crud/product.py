@@ -72,4 +72,4 @@ class CRUDProduct(CRUDBase[Product, ProductCreate, ProductUpdate]):
         return db_obj
 
 
-crud_product = CRUDProduct(Product)
+product = CRUDProduct(Product)

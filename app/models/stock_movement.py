@@ -22,6 +22,9 @@ class StockMovement(Base):
     stock_after = Column(Float)
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"))
 
+    reference_type = Column(String(50))
+    reference_id = Column(Integer)
+
     invoice = relationship("Invoice", back_populates="stock_movements")
 
     product = relationship("Product", back_populates="stock_movements")
