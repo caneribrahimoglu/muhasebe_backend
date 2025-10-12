@@ -1,5 +1,5 @@
 from app.routers.base import generate_router
-from app.crud import bank_account
+from app.crud.bank_account import bank_account
 from app.schemas.bank_account import BankAccount, BankAccountCreate, BankAccountUpdate
 
 # Banka hesapları da sadece CRUD içerir.

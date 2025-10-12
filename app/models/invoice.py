@@ -24,6 +24,7 @@ class Invoice(BaseModel):
     grand_total = Column(Float, default=0)
     balance = Column(Float, default=0)
     description = Column(String(255))
+    payment_method = Column(String, nullable=True)
 
     customer = relationship("Customer")
 

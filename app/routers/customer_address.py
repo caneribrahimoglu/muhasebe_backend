@@ -1,9 +1,10 @@
 from app.routers.base import generate_router
-from app import crud, schemas
+from app import schemas
+from app.crud.customer_address import  customer_address
 
 router = generate_router(
     name="CustomerAddress",
-    crud=crud.customer_address,
+    crud=customer_address,
     schema=schemas.CustomerAddress,
     create_schema=schemas.CustomerAddressCreate,
     update_schema=schemas.CustomerAddressUpdate,

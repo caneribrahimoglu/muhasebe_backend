@@ -21,7 +21,7 @@ class StockMovement(Base):
     note = Column(String(255))
     stock_after = Column(Float)
     invoice_id = Column(Integer, ForeignKey("invoices.id", ondelete="SET NULL"))
-
+    description = Column(String, nullable=True)
     reference_type = Column(String(50))
     reference_id = Column(Integer)
 

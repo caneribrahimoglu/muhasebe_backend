@@ -2,8 +2,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.stock_movement import StockMovementCreate, StockMovementRead
-from app.crud.stock_movement import crud_stock_movement
-from app.crud.product import crud_product
+from app.crud.stock_movement import stock_movement
+from app.crud.product import product
 
 
 router = APIRouter(prefix="/stock-movements", tags=["Stock Movements"])
@@ -11,8 +11,8 @@ router = APIRouter(prefix="/stock-movements", tags=["Stock Movements"])
 
 @router.post("/", response_model=StockMovementRead)
 def create_stock_movement(movement_in: StockMovementCreate, db: Session = Depends(get_db)):
-    product = crud_product.get(db, movement_in.product_id)
-    if not product:
+    products = product.get(db, movement_in.product_id)
+    if not products:
         raise HTTPException(status_code=404, detail="Ürün bulunamadı")
 
     qty = movement_in.quantity
@@ -30,7 +30,7 @@ def create_stock_movement(movement_in: StockMovementCreate, db: Session = Depend
     movement_data = movement_in.model_dump()
     movement_data["stock_after"] = product.stock_amount
 
-    db_obj = crud_stock_movement.create(db, obj_in=StockMovementCreate(**movement_data))
+    db_obj = stock_movement.create(db, obj_in=StockMovementCreate(**movement_data))
     return db_obj
 
 
@@ -38,4 +38,4 @@ def create_stock_movement(movement_in: StockMovementCreate, db: Session = Depend
 
 @router.get("/", response_model=list[StockMovementRead])
 def get_all_stock_movements(db: Session = Depends(get_db)):
-    return crud_stock_movement.get_multi(db=db)
+    return stock_movement.get_multi(db=db)
